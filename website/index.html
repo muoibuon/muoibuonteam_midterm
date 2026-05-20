@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Muoi — Quản lý hóa đơn macOS</title>
+<meta name="description" content="Muoi — ứng dụng quản lý hóa đơn B2B chuyên nghiệp, native cho macOS. Tạo hóa đơn, quản lý khách hàng và phân tích doanh thu."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── GLASS + CLAY TOKENS ── */
+:root {
+  --primary:   #F472B6;
+  --primary-d: #E879A0;
+  --primary-l: #F9A8D4;
+  --success:   #34D399;
+  --warning:   #FBBF24;
+  --danger:    #F87171;
+
+  --bg:      #0D0B14;
+  --bg-1:    #13101E;
+  --bg-2:    #1A1628;
+  --bg-3:    #221E32;
+  --surface: #2A2440;
+
+  --glass-bg:     rgba(255,255,255,.05);
+  --glass-border: rgba(255,255,255,.11);
+  --glass-blur:   blur(24px);
+
+  --border:   rgba(255,255,255,.10);
+  --border-h: rgba(255,255,255,.20);
+  --text-1:   #FFFFFF;
+  --text-2:   #C4B8D4;
+  --text-3:   #6E6080;
+
+  --font-body:    'Poppins', sans-serif;
+  --font-display: 'Montserrat', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --sp-4:4px;--sp-8:8px;--sp-12:12px;
+  --sp-16:16px;--sp-24:24px;--sp-32:32px;
+
+  --r:  12px;
+  --r2: 18px;
+  --r3: 26px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text-1);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:rgba(244,114,182,.3);}
+a{color:inherit;text-decoration:none;}
+
+/* ── AURORA BACKGROUND ── */
+.persp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.persp-grid{
+  position:absolute;
+  width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(244,114,182,.2) 0%,transparent 70%);
+  top:-200px;left:15%;transform:translateX(-50%);
+  filter:blur(70px);
+}
+.vp-lines{
+  position:absolute;
+  width:550px;height:550px;border-radius:50%;
+  background:radial-gradient(circle,rgba(168,85,247,.15) 0%,transparent 70%);
+  bottom:5%;right:5%;
+  filter:blur(80px);
+}
+.persp-glow{
+  position:absolute;
+  width:450px;height:450px;border-radius:50%;
+  background:radial-gradient(circle,rgba(244,114,182,.1) 0%,transparent 70%);
+  top:45%;left:65%;
+  filter:blur(60px);
+}
+.noise{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.4;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* ── LAYOUT ── */
+.wrap{width:min(1140px,92vw);margin-inline:auto;}
+.sect{padding-block:110px;position:relative;z-index:2;}
+
+/* ── TYPOGRAPHY ── */
+.eyebrow{
+  display:inline-flex;align-items:center;gap:var(--sp-8);
+  font-family:var(--font-mono);font-size:.72rem;font-weight:500;
+  color:var(--primary);letter-spacing:.12em;text-transform:uppercase;
+  margin-bottom:var(--sp-16);
+}
+.eyebrow::before{content:'//';color:var(--primary);opacity:.5;}
+.display{
+  font-family:var(--font-display);
+  font-size:clamp(2.8rem,7vw,5.6rem);
+  font-weight:900;line-height:1.05;
+  letter-spacing:-.02em;
+}
+.display .accent{
+  color:var(--primary);position:relative;
+  display:inline-block;
+}
+.display .accent::after{
+  content:'';
+  position:absolute;left:0;bottom:-4px;right:0;height:3px;
+  background:linear-gradient(90deg,var(--primary),var(--primary-l));
+  border-radius:2px;
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .6s cubic-bezier(.16,1,.3,1) .3s;
+}
+.display.visible .accent::after{transform:scaleX(1);}
+.sect-title{
+  font-family:var(--font-display);
+  font-size:clamp(1.8rem,4vw,2.8rem);
+  font-weight:800;line-height:1.1;
+  letter-spacing:-.01em;
+}
+.sect-title .accent{color:var(--primary);}
+.body-lg{font-size:1.05rem;color:var(--text-2);line-height:1.75;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;transition:all .3s;}
+nav.scrolled{
+  background:rgba(13,11,20,.75);
+  backdrop-filter:var(--glass-blur);
+  -webkit-backdrop-filter:var(--glass-blur);
+  border-bottom:1px solid var(--glass-border);
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+.nav-inner{
+  max-width:1240px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;padding:0 var(--sp-24);
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-display);font-size:1.1rem;font-weight:700;
+  letter-spacing:.02em;
+}
+.nav-logo-m{
+  width:36px;height:36px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;overflow:hidden;
+  box-shadow:0 4px 0 rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.nav-logo-m img{width:36px;height:36px;object-fit:cover;}
+.nav-links{display:flex;gap:2px;list-style:none;}
+.nav-links a{
+  padding:6px 14px;border-radius:var(--r);
+  font-size:.88rem;font-weight:500;color:var(--text-2);
+  transition:all .2s;
+}
+.nav-links a:hover{color:var(--text-1);background:rgba(244,114,182,.1);}
+.nav-cta{
+  padding:10px 24px;border-radius:50px;
+  font-size:.85rem;font-weight:700;
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;
+  font-family:var(--font-display);letter-spacing:.03em;
+  transition:all .15s;border:none;cursor:pointer;
+  box-shadow:0 6px 0 rgba(232,121,160,.45),0 10px 24px rgba(244,114,182,.25),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 0 rgba(232,121,160,.45),0 14px 30px rgba(244,114,182,.35),inset 0 1px 0 rgba(255,255,255,.25);}
+.nav-cta:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(232,121,160,.45),inset 0 1px 0 rgba(255,255,255,.25);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr;
+  align-items:center;justify-items:center;
+  text-align:center;padding:130px 20px 60px;
+  gap:var(--sp-16);
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:var(--sp-8);
+  padding:7px 18px 7px 12px;border-radius:100px;
+  background:rgba(244,114,182,.1);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(244,114,182,.25);
+  font-family:var(--font-mono);font-size:.72rem;color:var(--primary);
+  animation:fadeUp .6s ease both;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+}
+.badge-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--primary);
+  animation:blink 2s ease infinite;
+  box-shadow:0 0 6px rgba(244,114,182,.8);
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero-title{animation:fadeUp .6s ease .1s both;margin-bottom:var(--sp-8);}
+.hero-sub{
+  max-width:580px;margin:0 auto;
+  font-size:1.1rem;color:var(--text-2);line-height:1.75;
+  animation:fadeUp .6s ease .2s both;
+}
+.hero-actions{
+  display:flex;gap:var(--sp-12);flex-wrap:wrap;justify-content:center;
+  animation:fadeUp .6s ease .3s both;
+  margin-bottom:var(--sp-24);
+}
+
+/* ── BUTTONS ── */
+.btn-primary{
+  display:inline-flex;align-items:center;gap:var(--sp-8);
+  padding:14px 32px;border-radius:50px;
+  font-family:var(--font-display);font-size:.95rem;font-weight:700;
+  letter-spacing:.03em;
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;
+  box-shadow:0 8px 0 rgba(232,121,160,.45),0 12px 32px rgba(244,114,182,.3),inset 0 1px 0 rgba(255,255,255,.25);
+  transition:all .15s;cursor:pointer;border:none;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 0 rgba(232,121,160,.45),0 18px 40px rgba(244,114,182,.4),inset 0 1px 0 rgba(255,255,255,.25);}
+.btn-primary:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(232,121,160,.45),0 4px 12px rgba(244,114,182,.2),inset 0 1px 0 rgba(255,255,255,.25);}
+.btn-outline{
+  display:inline-flex;align-items:center;gap:var(--sp-8);
+  padding:13px 28px;border-radius:50px;
+  font-family:var(--font-display);font-size:.95rem;font-weight:700;
+  letter-spacing:.03em;
+  background:var(--glass-bg);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  color:var(--text-2);
+  border:1px solid var(--glass-border);
+  box-shadow:0 6px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .15s;cursor:pointer;
+}
+.btn-outline:hover{color:var(--primary);border-color:rgba(244,114,182,.4);background:rgba(244,114,182,.07);transform:translateY(-2px);}
+.btn-outline:active{transform:translateY(4px);}
+
+/* ── APP PREVIEW ── */
+.app-preview-wrap{
+  width:min(1060px,94vw);
+  animation:fadeUp .6s ease .4s both;
+  perspective:2000px;
+}
+.app-tabs{
+  display:inline-flex;gap:4px;padding:5px;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--glass-border);
+  border-radius:50px;
+}
+.app-tab{
+  padding:8px 22px;border-radius:50px;border:none;
+  font-family:var(--font-mono);font-size:.75rem;font-weight:500;
+  color:var(--text-3);background:transparent;cursor:pointer;
+  transition:all .2s;
+}
+.app-tab.active{
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;font-weight:700;
+  box-shadow:0 4px 0 rgba(232,121,160,.4),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.app-tab:not(.active):hover{color:var(--primary);}
+.app-frame{
+  background:rgba(13,11,20,.65);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:24px;overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.08);
+  transform:perspective(2000px) rotateX(3deg);
+  transition:transform .6s ease;
+}
+.app-frame:hover{transform:perspective(2000px) rotateX(0deg);}
+.app-titlebar{
+  height:42px;background:rgba(255,255,255,.03);
+  display:flex;align-items:center;gap:8px;padding:0 16px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.tdot{width:12px;height:12px;border-radius:50%;}
+.tdot.r{background:#ff5f57;}.tdot.y{background:#ffbd2e;}.tdot.g{background:#28c840;}
+.tbar-title{flex:1;text-align:center;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);}
+.app-body{display:flex;height:480px;}
+.app-sidebar{
+  width:200px;background:rgba(255,255,255,.025);border-right:1px solid rgba(255,255,255,.07);
+  padding:14px 10px;flex-shrink:0;
+}
+.sb-section{font-family:var(--font-mono);font-size:.58rem;color:var(--text-3);padding:0 10px 5px;margin-top:12px;text-transform:uppercase;letter-spacing:.1em;}
+.sb-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:12px;font-size:.75rem;color:var(--text-2);margin-bottom:2px;cursor:default;
+  border:1px solid transparent;transition:all .15s;
+}
+.sb-item.active{
+  background:rgba(244,114,182,.12);
+  border:1px solid rgba(244,114,182,.25);
+  color:var(--primary);font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.sb-item svg{flex-shrink:0;opacity:.7;}
+.sb-item.active svg{opacity:1;}
+.app-content{flex:1;overflow:hidden;}
+.app-pane{display:none;height:100%;padding:18px;overflow:hidden;}
+.app-pane.visible{display:block;}
+
+/* ── DASHBOARD PANE ── */
+.dash-header{margin-bottom:14px;}
+.dash-title{font-family:var(--font-display);font-size:1.1rem;font-weight:700;letter-spacing:.01em;}
+.dash-sub{font-size:.7rem;color:var(--text-3);font-family:var(--font-mono);}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.stat-box{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:12px 14px;
+  box-shadow:0 4px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.stat-box-label{font-family:var(--font-mono);font-size:.58rem;color:var(--text-3);margin-bottom:4px;}
+.stat-box-val{font-size:.9rem;font-weight:700;}
+.stat-box-val.green{color:var(--primary);}
+.stat-box-val.warn{color:#FBBF24;}
+.stat-box-val.red{color:#F87171;}
+.stat-badge{font-family:var(--font-mono);font-size:.55rem;font-weight:600;padding:2px 5px;border-radius:6px;margin-top:3px;display:inline-block;}
+.badge-up{background:rgba(244,114,182,.15);color:var(--primary);}
+.badge-down{background:rgba(248,113,113,.12);color:#F87171;}
+.dash-2col{display:flex;gap:12px;height:calc(100% - 130px);}
+.dash-card{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;overflow:hidden;flex:1;
+}
+.dash-card-head{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.75rem;font-weight:600;display:flex;justify-content:space-between;}
+.dash-card-head span{font-family:var(--font-mono);color:var(--text-3);font-size:.65rem;font-weight:400;}
+.inv-mini-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);}
+.inv-mini-num{font-family:var(--font-mono);font-size:.68rem;color:var(--primary);font-weight:600;}
+.inv-mini-client{font-size:.72rem;color:var(--text-2);}
+.inv-mini-amt{font-size:.72rem;font-weight:600;}
+.rate-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:.72rem;}
+.rate-sym{font-family:var(--font-mono);font-weight:600;color:var(--text-1);}
+.rate-val{font-family:var(--font-mono);color:var(--primary);font-weight:600;}
+.dash-right{width:200px;flex-shrink:0;}
+
+/* ── INVOICES PANE ── */
+.pane-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.pane-title{font-family:var(--font-display);font-size:1.05rem;font-weight:700;letter-spacing:.01em;}
+.pane-btn{
+  padding:6px 14px;border-radius:50px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;font-family:var(--font-display);font-size:.7rem;font-weight:700;
+  letter-spacing:.03em;border:none;cursor:default;
+  box-shadow:0 3px 0 rgba(232,121,160,.4),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.filter-row{display:flex;gap:6px;margin-bottom:10px;}
+.chip{
+  padding:4px 12px;border-radius:50px;
+  font-family:var(--font-mono);font-size:.62rem;font-weight:500;cursor:default;
+}
+.chip.active{
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;font-weight:700;
+  box-shadow:0 3px 0 rgba(232,121,160,.4),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.chip:not(.active){
+  background:rgba(255,255,255,.04);color:var(--text-2);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(6px);
+}
+.table-head{display:grid;grid-template-columns:1.2fr 1.6fr 1fr 1fr .9fr .8fr;gap:6px;padding:6px 10px;font-family:var(--font-mono);font-size:.58rem;color:var(--text-3);border-bottom:1px solid rgba(255,255,255,.07);text-transform:uppercase;letter-spacing:.06em;}
+.table-row{display:grid;grid-template-columns:1.2fr 1.6fr 1fr 1fr .9fr .8fr;gap:6px;padding:8px 10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.04);font-size:.7rem;border-radius:8px;}
+.table-row:hover{background:rgba(244,114,182,.05);}
+.t-num{font-family:var(--font-mono);color:var(--primary);font-size:.65rem;font-weight:600;}
+.t-client{color:var(--text-1);}
+.t-date{color:var(--text-2);font-family:var(--font-mono);font-size:.65rem;}
+.t-amt{font-weight:600;}
+.status-pill{display:inline-block;padding:2px 8px;border-radius:50px;font-family:var(--font-mono);font-size:.58rem;font-weight:600;}
+.s-paid{background:rgba(244,114,182,.15);color:var(--primary);border:1px solid rgba(244,114,182,.25);}
+.s-pending{background:rgba(251,191,36,.12);color:#FBBF24;border:1px solid rgba(251,191,36,.2);}
+.s-draft{background:rgba(255,255,255,.06);color:var(--text-3);border:1px solid rgba(255,255,255,.1);}
+.s-overdue{background:rgba(248,113,113,.1);color:#F87171;border:1px solid rgba(248,113,113,.2);}
+
+/* ── CLIENTS PANE ── */
+.client-card{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:8px;}
+.client-avatar{width:34px;height:34px;border-radius:12px;background:rgba(244,114,182,.15);border:1px solid rgba(244,114,182,.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--primary);font-size:.9rem;flex-shrink:0;box-shadow:0 3px 0 rgba(0,0,0,.2);}
+.client-name{font-size:.78rem;font-weight:600;}
+.client-meta{font-family:var(--font-mono);font-size:.62rem;color:var(--text-3);margin-top:1px;}
+
+/* ── THEME TOGGLE ── */
+.preview-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.theme-toggle{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:50px;border:1px solid var(--glass-border);
+  background:rgba(255,255,255,.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  color:var(--text-3);font-family:var(--font-mono);font-size:.7rem;font-weight:500;
+  cursor:pointer;transition:all .2s;
+}
+.theme-toggle:hover{color:var(--primary);border-color:rgba(244,114,182,.35);}
+.theme-toggle svg{transition:transform .4s ease;}
+.theme-toggle.light-active svg{transform:rotate(180deg);}
+
+/* ── APP FRAME LIGHT MODE ── */
+.app-frame.light{
+  background:rgba(245,244,250,.97);
+  border-color:rgba(0,0,0,.1);
+  --text-1:#1A1030;--text-2:#4A3A65;--text-3:#9080A8;
+}
+.app-frame.light .app-titlebar{
+  background:rgba(0,0,0,.03);border-bottom-color:rgba(0,0,0,.07);
+}
+.app-frame.light .tbar-title{color:#9080A8;}
+.app-frame.light .app-sidebar{
+  background:rgba(0,0,0,.025);border-right-color:rgba(0,0,0,.07);
+}
+.app-frame.light .sb-section{color:#9080A8;}
+.app-frame.light .sb-item{color:#4A3A65;}
+.app-frame.light .stat-box{
+  background:rgba(255,255,255,.8);border-color:rgba(0,0,0,.07);
+  box-shadow:0 4px 0 rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.9);
+}
+.app-frame.light .stat-box-label{color:#9080A8;}
+.app-frame.light .dash-card{background:rgba(255,255,255,.75);border-color:rgba(0,0,0,.07);}
+.app-frame.light .dash-card-head{border-bottom-color:rgba(0,0,0,.06);}
+.app-frame.light .dash-card-head span{color:#9080A8;}
+.app-frame.light .inv-mini-row{border-bottom-color:rgba(0,0,0,.05);}
+.app-frame.light .rate-row{border-bottom-color:rgba(0,0,0,.05);}
+.app-frame.light .table-head{
+  border-bottom-color:rgba(0,0,0,.07);color:#9080A8;
+}
+.app-frame.light .table-row{border-bottom-color:rgba(0,0,0,.05);}
+.app-frame.light .table-row:hover{background:rgba(244,114,182,.06);}
+.app-frame.light .chip:not(.active){
+  background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08);color:#4A3A65;
+}
+.app-frame.light .client-card{
+  background:rgba(255,255,255,.75);border-color:rgba(0,0,0,.07);
+}
+.app-frame.light .s-draft{
+  background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1);color:#9080A8;
+}
+
+/* ── TRUST BAR ── */
+.trust{
+  position:relative;z-index:2;
+  background:rgba(255,255,255,.04);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border-top:1px solid var(--glass-border);
+  border-bottom:1px solid var(--glass-border);
+  padding:28px 0;
+}
+.trust-inner{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:36px;}
+.trust-item{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.78rem;color:var(--text-3);white-space:nowrap;}
+.trust-item strong{color:var(--text-1);}
+
+/* ── FEATURE CARDS ── */
+.feat-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.feat-card{
+  background:var(--glass-bg);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--r3);padding:28px;
+  position:relative;overflow:hidden;
+  box-shadow:0 6px 0 rgba(0,0,0,.25),0 16px 40px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.07);
+  transition:border-color .3s,transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;
+}
+.feat-card:hover{
+  border-color:rgba(244,114,182,.3);
+  transform:translateY(-6px);
+  box-shadow:0 12px 0 rgba(244,114,182,.2),0 30px 60px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.feat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(244,114,182,.4),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.feat-card:hover::before{opacity:1;}
+.fc-s5{grid-column:span 5;}.fc-s7{grid-column:span 7;}
+.fc-s4{grid-column:span 4;}.fc-s8{grid-column:span 8;}
+.fc-s6{grid-column:span 6;}.fc-s12{grid-column:span 12;}
+.fc-icon{
+  width:46px;height:46px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;
+  background:rgba(244,114,182,.1);
+  border:1px solid rgba(244,114,182,.2);
+  color:var(--primary);
+  box-shadow:0 4px 0 rgba(232,121,160,.25),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.fc-title{font-family:var(--font-display);font-size:1rem;font-weight:700;letter-spacing:-.01em;margin-bottom:8px;}
+.fc-desc{font-size:.86rem;color:var(--text-2);line-height:1.65;}
+
+/* ── INVOICE WIDGET ── */
+.inv-widget{
+  background:rgba(255,255,255,.04);border:1px solid var(--glass-border);
+  border-radius:16px;overflow:hidden;margin-top:16px;
+  box-shadow:0 4px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.inv-widget-head{padding:10px 14px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;}
+.inv-widget-num{font-family:var(--font-mono);font-size:.72rem;color:var(--primary);font-weight:600;}
+.inv-widget-row{display:flex;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:.75rem;}
+.inv-widget-row .lbl{color:var(--text-2);}
+.inv-widget-row .val{font-weight:600;}
+.inv-widget-total{display:flex;justify-content:space-between;padding:10px 14px;background:rgba(244,114,182,.08);border-top:1px solid rgba(244,114,182,.15);}
+.inv-widget-total .lbl{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--text-2);}
+.inv-widget-total .val{font-size:1rem;font-weight:800;color:var(--primary);}
+
+/* ── QR WIDGET ── */
+.qr-widget{
+  display:flex;align-items:center;gap:14px;padding:14px;
+  background:rgba(255,255,255,.04);border:1px solid var(--glass-border);
+  border-radius:16px;margin-top:16px;
+  box-shadow:0 4px 0 rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.qr-box{width:72px;height:72px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 0 rgba(0,0,0,.2);}
+.qr-info-bank{font-family:var(--font-mono);font-size:.65rem;color:var(--primary);font-weight:600;margin-bottom:3px;}
+.qr-info-amt{font-size:1rem;font-weight:800;margin-bottom:2px;}
+.qr-info-note{font-size:.68rem;color:var(--text-2);}
+
+/* ── CURRENCY ── */
+.cur-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem;}
+.cur-row:last-child{border-bottom:none;}
+.cur-code{font-family:var(--font-mono);font-weight:600;}
+.cur-rate{font-family:var(--font-mono);color:var(--primary);font-weight:500;}
+.cur-change{font-family:var(--font-mono);font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:8px;}
+.chg-up{background:rgba(244,114,182,.12);color:var(--primary);}
+.chg-down{background:rgba(248,113,113,.1);color:#F87171;}
+.chart-row{display:flex;align-items:flex-end;gap:5px;height:60px;margin-top:14px;}
+.bar{flex:1;border-radius:6px 6px 0 0;background:rgba(244,114,182,.15);transition:background .2s;}
+.bar.hi{background:var(--primary);}
+
+/* ── STATS SECTION ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+.stat-card{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--r3);
+  padding:36px 24px;text-align:center;
+  box-shadow:0 8px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.07);
+  transition:all .2s;
+}
+.stat-card:hover{
+  transform:translateY(-5px);
+  border-color:rgba(244,114,182,.3);
+  box-shadow:0 13px 0 rgba(244,114,182,.25),0 24px 48px rgba(244,114,182,.12),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.stat-num{
+  font-family:var(--font-display);font-size:3.2rem;font-weight:900;
+  color:var(--primary);line-height:1;margin-bottom:8px;
+  text-shadow:0 0 30px rgba(244,114,182,.4);
+}
+.stat-lbl{font-size:.88rem;color:var(--text-2);}
+
+/* ── HOW IT WORKS ── */
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;}
+.steps-row::before{
+  content:'';position:absolute;top:40px;left:16.6%;right:16.6%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(244,114,182,.4),transparent);
+  opacity:.5;
+}
+.step-card{
+  background:var(--glass-bg);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--r3);padding:28px 24px;
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.07);
+  transition:all .3s;
+}
+.step-card:hover{
+  border-color:rgba(244,114,182,.35);
+  transform:translateY(-6px);
+  box-shadow:0 14px 0 rgba(244,114,182,.2),0 28px 50px rgba(244,114,182,.1),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.step-num{
+  position:absolute;top:14px;right:18px;
+  font-family:var(--font-display);font-size:4rem;font-weight:900;
+  color:var(--primary);opacity:.06;line-height:1;
+}
+.step-icon{
+  width:52px;height:52px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.2);
+  margin-bottom:16px;color:var(--primary);
+  box-shadow:0 4px 0 rgba(232,121,160,.25),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.step-title{font-family:var(--font-display);font-size:1rem;font-weight:700;letter-spacing:-.01em;margin-bottom:8px;}
+.step-desc{font-size:.86rem;color:var(--text-2);line-height:1.65;}
+
+/* ── PILLS ── */
+.pill-wrap{display:flex;flex-wrap:wrap;gap:10px;}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:50px;
+  background:rgba(255,255,255,.05);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid var(--glass-border);
+  font-family:var(--font-mono);font-size:.75rem;color:var(--text-2);
+  transition:all .2s;
+  box-shadow:0 3px 0 rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.pill:hover{color:var(--primary);border-color:rgba(244,114,182,.35);}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 4px rgba(244,114,182,.8);}
+
+/* ── DOWNLOAD ── */
+.dl-section{position:relative;z-index:2;padding-block:100px;}
+.dl-card{
+  background:linear-gradient(145deg,rgba(244,114,182,.07),rgba(168,85,247,.04));
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid rgba(244,114,182,.2);
+  border-radius:var(--r3);
+  padding:64px 48px;text-align:center;max-width:760px;margin:0 auto;
+  position:relative;overflow:hidden;
+  box-shadow:0 10px 0 rgba(0,0,0,.3),0 40px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.1);
+}
+.dl-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(244,114,182,.08),transparent 70%);
+  pointer-events:none;
+}
+.dl-card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(244,114,182,.5),transparent);
+}
+.dl-app-identity{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px;}
+.dl-app-icon{width:56px;height:56px;border-radius:14px;box-shadow:0 6px 0 rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.2);}
+.dl-app-name{font-family:var(--font-display);font-size:1.5rem;font-weight:800;letter-spacing:-.01em;color:var(--text-1);}
+.dl-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);font-weight:900;margin-bottom:12px;letter-spacing:-.02em;}
+.dl-title .accent{color:var(--primary);}
+.dl-sub{font-size:1rem;color:var(--text-2);margin-bottom:36px;line-height:1.7;}
+.dl-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.dl-note{margin-top:18px;font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);}
+.dmg-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:8px;
+  background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.2);
+  font-family:var(--font-mono);font-size:.65rem;color:var(--primary);
+  margin-bottom:24px;
+  box-shadow:0 2px 0 rgba(232,121,160,.3),inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+/* ── CONTACT ── */
+.contact-section{position:relative;z-index:2;padding-block:80px;}
+.contact-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.contact-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);font-weight:900;margin-bottom:16px;letter-spacing:-.02em;}
+.contact-title .accent{color:var(--primary);}
+.contact-sub{font-size:1rem;color:var(--text-2);line-height:1.75;margin-bottom:24px;}
+.contact-info{display:flex;flex-direction:column;gap:14px;}
+.contact-row{display:flex;align-items:center;gap:12px;}
+.contact-icon{
+  width:40px;height:40px;border-radius:14px;
+  background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 4px 0 rgba(232,121,160,.2),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.contact-label{font-family:var(--font-mono);font-size:.7rem;color:var(--text-3);}
+.contact-val{font-size:.9rem;font-weight:600;}
+.contact-form{
+  background:var(--glass-bg);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  border-radius:var(--r3);padding:32px;
+  box-shadow:0 8px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.form-group{margin-bottom:16px;}
+.form-label{font-family:var(--font-mono);font-size:.72rem;color:var(--text-2);font-weight:500;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+.form-input{
+  width:100%;padding:11px 16px;border-radius:var(--r2);
+  background:rgba(255,255,255,.06);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--glass-border);
+  color:var(--text-1);font-family:var(--font-body);font-size:.9rem;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.form-input:focus{border-color:rgba(244,114,182,.5);box-shadow:0 0 0 3px rgba(244,114,182,.1);}
+.form-textarea{min-height:100px;resize:vertical;}
+.form-btn{width:100%;}
+
+/* ── FOOTER ── */
+footer{
+  position:relative;z-index:2;
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--glass-border);
+  padding:32px 0;
+}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:.95rem;font-weight:700;letter-spacing:.02em;}
+.footer-logo-m{
+  width:30px;height:30px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
+  box-shadow:0 3px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.footer-logo-m img{width:30px;height:30px;object-fit:cover;}
+.footer-links{display:flex;gap:20px;}
+.footer-links a{font-size:.82rem;color:var(--text-3);transition:color .2s;}
+.footer-links a:hover{color:var(--primary);}
+.footer-copy{font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+
+/* Directional reveal base */
+.reveal,
+.reveal-left,
+.reveal-right,
+.reveal-up,
+.reveal-down {
+  opacity:0;
+  transition:opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1);
+}
+.reveal      { transform:translateY(36px); }
+.reveal-left { transform:translateX(-70px); }
+.reveal-right{ transform:translateX(70px); }
+.reveal-up   { transform:translateY(50px); }
+.reveal-down { transform:translateY(-40px); }
+
+.reveal.visible,
+.reveal-left.visible,
+.reveal-right.visible,
+.reveal-up.visible,
+.reveal-down.visible {
+  opacity:1;
+  transform:translate(0,0);
+}
+[data-delay="1"]{transition-delay:.1s;}
+[data-delay="2"]{transition-delay:.2s;}
+[data-delay="3"]{transition-delay:.3s;}
+[data-delay="4"]{transition-delay:.4s;}
+[data-delay="5"]{transition-delay:.5s;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .fc-s5,.fc-s7,.fc-s4,.fc-s8,.fc-s6{grid-column:span 12;}
+  .stats-grid,.steps-row,.contact-inner{grid-template-columns:1fr 1fr;}
+  .app-sidebar{display:none;}
+}
+@media(max-width:600px){
+  .stats-grid,.steps-row{grid-template-columns:1fr;}
+  .contact-inner{grid-template-columns:1fr;}
+  .display{font-size:2.4rem;}
+  .nav-links{display:none;}
+}
+
+/* ── DIVIDER ── */
+.persp-divider{
+  position:relative;height:1px;margin-block:0;
+  background:linear-gradient(90deg,transparent,rgba(244,114,182,.25),transparent);
+}
+
+/* ── VR/AR EFFECTS ── */
+#vr-canvas{
+  position:fixed;inset:0;z-index:0;
+  pointer-events:none;opacity:.9;
+}
+.vr-scanlines{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg,transparent,transparent 3px,
+    rgba(0,0,0,.018) 3px,rgba(0,0,0,.018) 4px
+  );
+}
+/* Holographic shimmer — all card types */
+.feat-card,.stat-card,.step-card,.dl-card,.contact-form{
+  --mx:50%;--my:50%;
+  position:relative;overflow:hidden;
+}
+.feat-card::after,.stat-card::after,.step-card::after,
+.dl-card::after,.contact-form::after{
+  content:'';position:absolute;inset:-1px;border-radius:inherit;
+  background:radial-gradient(
+    circle at var(--mx) var(--my),
+    rgba(255,80,180,.22) 0%,
+    rgba(80,200,255,.16) 35%,
+    rgba(180,80,255,.09) 65%,
+    transparent 80%
+  );
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:1;
+}
+.feat-card:hover::after,.stat-card:hover::after,.step-card:hover::after,
+.dl-card:hover::after,.contact-form:hover::after{opacity:1;}
+/* Hero depth layers */
+.hero-badge,.hero-title,.hero-sub,.hero-actions,.hero-scroll{
+  will-change:transform;
+  transition:transform .08s ease-out;
+}
+
+/* ── SCROLL PROGRESS BAR ── */
+#scroll-progress{
+  position:fixed;top:0;left:0;height:3px;width:0%;z-index:200;
+  background:linear-gradient(90deg,var(--primary),var(--primary-l),#a855f7);
+  border-radius:0 2px 2px 0;
+  transition:width .1s linear;
+  box-shadow:0 0 8px rgba(244,114,182,.6);
+}
+
+/* ── SCROLL TO TOP ── */
+#scroll-top{
+  position:fixed;bottom:32px;right:32px;z-index:150;
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--primary),var(--primary-d));
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 0 rgba(232,121,160,.4),0 10px 24px rgba(244,114,182,.3);
+  opacity:0;transform:translateY(16px) scale(.85);
+  transition:opacity .3s,transform .3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+#scroll-top.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+#scroll-top:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 9px 0 rgba(232,121,160,.4),0 16px 32px rgba(244,114,182,.4);}
+#scroll-top:active{transform:translateY(3px) scale(.95);}
+
+/* ── RIPPLE ── */
+.ripple-host{position:relative;overflow:hidden;}
+.ripple-wave{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.3);
+  transform:scale(0);animation:ripple-anim .55s linear;
+  pointer-events:none;
+}
+@keyframes ripple-anim{to{transform:scale(4);opacity:0;}}
+
+/* ── TAB TRANSITION ── */
+.app-pane{opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .25s ease;display:block!important;pointer-events:none;height:0;overflow:hidden;}
+.app-pane.visible{opacity:1;transform:translateY(0);pointer-events:auto;height:100%;overflow:hidden;}
+
+/* ── TILT CARD ── */
+.feat-card{transform-style:preserve-3d;}
+.feat-card .fc-icon,.feat-card .fc-title,.feat-card .fc-desc{transform:translateZ(0);transition:transform .3s ease;}
+.feat-card:hover .fc-icon{transform:translateZ(12px);}
+.feat-card:hover .fc-title{transform:translateZ(8px);}
+.feat-card:hover .fc-desc{transform:translateZ(4px);}
+
+/* ── HAMBURGER ── */
+.nav-hamburger{
+  display:none;flex-direction:column;gap:5px;cursor:pointer;
+  padding:8px;border:none;background:transparent;
+}
+.nav-hamburger span{
+  display:block;width:22px;height:2px;border-radius:2px;
+  background:var(--text-2);transition:all .3s;
+}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.nav-hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.mobile-menu{
+  display:none;position:fixed;top:64px;left:0;right:0;z-index:99;
+  background:rgba(13,11,20,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--glass-border);padding:16px 24px 24px;
+  flex-direction:column;gap:4px;
+  transform:translateY(-8px);opacity:0;
+  transition:opacity .25s,transform .25s;
+}
+.mobile-menu.open{display:flex;opacity:1;transform:translateY(0);}
+.mobile-menu a{
+  padding:12px 16px;border-radius:var(--r);font-size:.95rem;font-weight:500;
+  color:var(--text-2);transition:all .2s;
+}
+.mobile-menu a:hover{color:var(--primary);background:rgba(244,114,182,.08);}
+.mobile-menu .nav-cta{text-align:center;margin-top:8px;}
+@media(max-width:600px){
+  .nav-hamburger{display:flex;}
+  .nav-links,.nav-cta{display:none;}
+}
+
+/* ── HERO SCROLL INDICATOR ── */
+.hero-scroll{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:.65rem;color:var(--text-3);
+  animation:fadeUp .6s ease .7s both;
+}
+.scroll-line{
+  width:1px;height:40px;
+  background:linear-gradient(180deg,transparent,var(--primary));
+  animation:scrollPulse 2s ease infinite;
+}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(.6);}50%{opacity:1;transform:scaleY(1);}}
+</style>
+</head>
+<body>
+
+<!-- VR/AR canvas -->
+<canvas id="vr-canvas"></canvas>
+<div class="vr-scanlines"></div>
+
+<!-- Scroll progress -->
+<div id="scroll-progress"></div>
+
+<!-- Scroll to top -->
+<button id="scroll-top" onclick="scrollTo({top:0,behavior:'smooth'})" aria-label="Lên đầu trang">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4,10 8,6 12,10"/>
+  </svg>
+</button>
+
+<!-- Background -->
+<div class="persp-bg">
+  <div class="persp-grid"></div>
+  <div class="vp-lines"></div>
+  <div class="persp-glow"></div>
+</div>
+<div class="noise"></div>
+
+<!-- ═══════════════════════ NAV ═══════════════════════ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-m">
+        <img src="icon.png" alt="Muoi"/>
+      </div>
+      Muoi
+    </div>
+    <ul class="nav-links">
+      <li><a href="#features">Tính năng</a></li>
+      <li><a href="#how">Cách dùng</a></li>
+      <li><a href="#download">Tải xuống</a></li>
+      <li><a href="#contact">Liên hệ</a></li>
+    </ul>
+    <a href="#download" class="nav-cta">Tải miễn phí</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu" onclick="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="closeMobileMenu()">Tính năng</a>
+  <a href="#how" onclick="closeMobileMenu()">Cách dùng</a>
+  <a href="#download" onclick="closeMobileMenu()">Tải xuống</a>
+  <a href="#contact" onclick="closeMobileMenu()">Liên hệ</a>
+  <a href="#download" class="nav-cta" onclick="closeMobileMenu()">Tải miễn phí</a>
+</div>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    Phiên bản mới nhất · macOS 13+ · Native SwiftUI
+  </div>
+
+  <h1 class="hero-title display visible">
+    Quản lý hóa đơn<br/>
+    <span class="accent">thế hệ mới</span>
+  </h1>
+
+  <p class="hero-sub">
+    Muoi — tạo hóa đơn chuyên nghiệp, quản lý khách hàng,
+    tích hợp VietQR và tỷ giá thời gian thực ngay trên macOS của bạn.
+  </p>
+
+  <div class="hero-actions">
+    <a href="Muoi.dmg" download class="btn-primary ripple-host">
+      Tải về cho Mac
+    </a>
+    <a href="#features" class="btn-outline ripple-host">
+      Xem tính năng
+    </a>
+  </div>
+
+  <div class="hero-scroll">
+    <span>Cuộn xuống</span>
+    <div class="scroll-line"></div>
+  </div>
+
+  <!-- Interactive App Preview -->
+  <div class="app-preview-wrap">
+    <div class="preview-toolbar">
+      <div class="app-tabs" id="appTabs">
+        <button class="app-tab active" data-pane="pane-dash" onclick="switchTab(this,'pane-dash')">Dashboard</button>
+        <button class="app-tab" data-pane="pane-inv" onclick="switchTab(this,'pane-inv')">Hóa đơn</button>
+        <button class="app-tab" data-pane="pane-cli" onclick="switchTab(this,'pane-cli')">Khách hàng</button>
+      </div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleAppTheme()">
+        <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        Sáng
+      </button>
+    </div>
+
+    <div class="app-frame">
+      <div class="app-titlebar">
+        <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+        <div class="tbar-title">Muoi</div>
+        <div style="width:52px"></div>
+      </div>
+      <div class="app-body">
+        <div class="app-sidebar">
+          <div class="sb-section">Chính</div>
+          <div class="sb-item" id="sb-dash">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+              <rect x="1" y="7" width="3" height="5" rx="0.5" opacity=".6"/>
+              <rect x="5" y="4" width="3" height="8" rx="0.5"/>
+              <rect x="9" y="1.5" width="3" height="10.5" rx="0.5" opacity=".8"/>
+            </svg>
+            Dashboard
+          </div>
+          <div class="sb-item active" id="sb-inv">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7.5 1H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V4.5L7.5 1z"/>
+              <polyline points="7.5,1 7.5,4.5 11,4.5"/>
+              <line x1="4" y1="7" x2="9" y2="7"/>
+              <line x1="4" y1="9.5" x2="7" y2="9.5"/>
+            </svg>
+            Hóa đơn
+          </div>
+          <div class="sb-item" id="sb-cli">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+              <circle cx="4.5" cy="4" r="2.5"/>
+              <path d="M1 12a3.5 3.5 0 0 1 7 0"/>
+              <circle cx="10.5" cy="3.5" r="2" opacity=".65"/>
+              <path d="M8.5 12a2.5 2.5 0 0 1 4 0" opacity=".65"/>
+            </svg>
+            Khách hàng
+          </div>
+          <div class="sb-section">Hệ thống</div>
+          <div class="sb-item">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+              <circle cx="6.5" cy="6.5" r="2"/>
+              <path d="M6.5 1v1.3M6.5 10.7V12M1 6.5h1.3M10.7 6.5H12M2.93 2.93l.92.92M9.15 9.15l.92.92M2.93 10.07l.92-.92M9.15 3.85l.92-.92"/>
+            </svg>
+            Tùy chọn
+          </div>
+        </div>
+        <div class="app-content">
+
+          <!-- DASHBOARD PANE -->
+          <div class="app-pane" id="pane-dash">
+            <div class="dash-header">
+              <div class="dash-title">Dashboard</div>
+              <div class="dash-sub">// tổng quan kinh doanh</div>
+            </div>
+            <div class="stats-row">
+              <div class="stat-box"><div class="stat-box-label">DOANH THU</div><div class="stat-box-val green">1.24 tỷ</div><div class="stat-badge badge-up">▲12.4%</div></div>
+              <div class="stat-box"><div class="stat-box-label">HÓA ĐƠN</div><div class="stat-box-val green">38</div><div class="stat-badge badge-up">▲8.2%</div></div>
+              <div class="stat-box"><div class="stat-box-label">CHỜ THANH TOÁN</div><div class="stat-box-val warn">6</div><div class="stat-badge badge-down">▼2 HĐ</div></div>
+              <div class="stat-box"><div class="stat-box-label">KHÁCH HÀNG</div><div class="stat-box-val green">24</div><div class="stat-badge badge-up">▲3 mới</div></div>
+            </div>
+            <div class="dash-2col">
+              <div class="dash-card">
+                <div class="dash-card-head">Hóa đơn gần đây <span>38 tổng</span></div>
+                <div class="inv-mini-row"><div><div class="inv-mini-num">HD-0038</div><div class="inv-mini-client">Techviet Corp</div></div><div class="inv-mini-amt" style="color:var(--primary)">48.5M₫</div><div class="status-pill s-paid">Đã TT</div></div>
+                <div class="inv-mini-row"><div><div class="inv-mini-num">HD-0037</div><div class="inv-mini-client">SaigonTech JSC</div></div><div class="inv-mini-amt" style="color:#D97706">120M₫</div><div class="status-pill s-pending">Chờ TT</div></div>
+                <div class="inv-mini-row"><div><div class="inv-mini-num">HD-0036</div><div class="inv-mini-client">FPT Software</div></div><div class="inv-mini-amt" style="color:#DC2626">215M₫</div><div class="status-pill s-overdue">Quá hạn</div></div>
+                <div class="inv-mini-row"><div><div class="inv-mini-num">HD-0035</div><div class="inv-mini-client">Hanoi Logistics</div></div><div class="inv-mini-amt">67.2M₫</div><div class="status-pill s-draft">Nháp</div></div>
+              </div>
+              <div class="dash-card dash-right">
+                <div class="dash-card-head">Tỷ giá <span>live</span></div>
+                <div class="rate-row"><span class="rate-sym">USD</span><span class="rate-val">25,480₫</span></div>
+                <div class="rate-row"><span class="rate-sym">EUR</span><span class="rate-val">27,140₫</span></div>
+                <div class="rate-row"><span class="rate-sym">JPY</span><span class="rate-val">171₫</span></div>
+                <div class="rate-row"><span class="rate-sym">SGD</span><span class="rate-val">18,960₫</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INVOICES PANE -->
+          <div class="app-pane visible" id="pane-inv">
+            <div class="pane-header">
+              <div class="pane-title">Hóa đơn</div>
+              <div class="pane-btn">＋ Tạo mới</div>
+            </div>
+            <div class="filter-row">
+              <div class="chip active">Tất cả</div>
+              <div class="chip">Nháp</div>
+              <div class="chip">Chờ xử lý</div>
+              <div class="chip">Đã thanh toán</div>
+            </div>
+            <div class="table-head"><div>SỐ HĐ</div><div>KHÁCH HÀNG</div><div>NGÀY</div><div>TỔNG TIỀN</div><div>CÒN LẠI</div><div>TRẠNG THÁI</div></div>
+            <div class="table-row"><div class="t-num">HD-0038</div><div class="t-client">Techviet Corp</div><div class="t-date">12/04/2026</div><div class="t-amt" style="color:var(--text-1)">48,500,000₫</div><div style="color:var(--primary)">—</div><div><span class="status-pill s-paid">Đã TT</span></div></div>
+            <div class="table-row"><div class="t-num">HD-0037</div><div class="t-client">SaigonTech JSC</div><div class="t-date">08/04/2026</div><div class="t-amt" style="color:var(--text-1)">120,000,000₫</div><div style="color:#D97706">120M₫</div><div><span class="status-pill s-pending">Chờ TT</span></div></div>
+            <div class="table-row"><div class="t-num">HD-0036</div><div class="t-client">Hanoi Logistics</div><div class="t-date">02/04/2026</div><div class="t-amt" style="color:var(--text-1)">67,200,000₫</div><div style="color:var(--text-3)">—</div><div><span class="status-pill s-draft">Nháp</span></div></div>
+            <div class="table-row"><div class="t-num">HD-0035</div><div class="t-client">FPT Software</div><div class="t-date">28/03/2026</div><div class="t-amt" style="color:var(--text-1)">215,000,000₫</div><div style="color:#DC2626">215M₫</div><div><span class="status-pill s-overdue">Quá hạn</span></div></div>
+            <div class="table-row"><div class="t-num">HD-0034</div><div class="t-client">Vingroup JSC</div><div class="t-date">20/03/2026</div><div class="t-amt" style="color:var(--text-1)">88,000,000₫</div><div style="color:var(--primary)">—</div><div><span class="status-pill s-paid">Đã TT</span></div></div>
+          </div>
+
+          <!-- CLIENTS PANE -->
+          <div class="app-pane" id="pane-cli">
+            <div class="pane-header">
+              <div class="pane-title">Khách hàng</div>
+              <div class="pane-btn">＋ Thêm mới</div>
+            </div>
+            <div class="filter-row">
+              <div class="chip active">Tất cả (24)</div>
+              <div class="chip">Hoạt động</div>
+              <div class="chip">Tạm dừng</div>
+            </div>
+            <div class="client-card"><div class="client-avatar">T</div><div><div class="client-name">Techviet Corp</div><div class="client-meta">TNHH · TP.HCM · 12 hóa đơn · 450M₫</div></div><div style="margin-left:auto"><span class="status-pill s-paid">Active</span></div></div>
+            <div class="client-card"><div class="client-avatar">S</div><div><div class="client-name">SaigonTech JSC</div><div class="client-meta">Cổ phần · Hà Nội · 8 hóa đơn · 320M₫</div></div><div style="margin-left:auto"><span class="status-pill s-pending">Pending</span></div></div>
+            <div class="client-card"><div class="client-avatar">F</div><div><div class="client-name">FPT Software</div><div class="client-meta">Cổ phần · Hà Nội · 15 hóa đơn · 1.2 tỷ₫</div></div><div style="margin-left:auto"><span class="status-pill s-paid">Active</span></div></div>
+            <div class="client-card"><div class="client-avatar">H</div><div><div class="client-name">Hanoi Logistics</div><div class="client-meta">TNHH · Hà Nội · 5 hóa đơn · 180M₫</div></div><div style="margin-left:auto"><span class="status-pill s-draft">Inactive</span></div></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ TRUST BAR ═══════════════════════ -->
+<div class="trust" style="position:relative;z-index:2;">
+  <div class="wrap">
+    <div class="trust-inner">
+      <div class="trust-item reveal-up" data-delay="1"><span class="pill-dot"></span><strong>Native</strong> macOS SwiftUI</div>
+      <div class="trust-item reveal-up" data-delay="2"><span class="pill-dot"></span>Dữ liệu <strong>lưu cục bộ</strong></div>
+      <div class="trust-item reveal-up" data-delay="3"><span class="pill-dot"></span><strong>VietQR</strong> tích hợp</div>
+      <div class="trust-item reveal-up" data-delay="4"><span class="pill-dot"></span>Tỷ giá <strong>thời gian thực</strong></div>
+      <div class="trust-item reveal-up" data-delay="5"><span class="pill-dot"></span>Hoàn toàn <strong>miễn phí</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ FEATURES ═══════════════════════ -->
+<section class="sect" id="features">
+  <div class="wrap">
+    <div style="margin-bottom:56px">
+      <div class="eyebrow reveal-left">01 — Tính năng</div>
+      <h2 class="sect-title reveal-left" data-delay="1">Mọi thứ bạn cần để<br/><span class="accent">quản lý hóa đơn</span></h2>
+      <p class="body-lg reveal-left" data-delay="2" style="margin-top:12px;max-width:540px">Từ tạo hóa đơn, theo dõi thanh toán đến QR chuyển khoản — tất cả trong một ứng dụng gọn nhẹ.</p>
+    </div>
+
+    <div class="feat-grid">
+
+      <!-- Invoice creation -->
+      <div class="feat-card fc-s7 reveal-left">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <path d="M11 2H5a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 5 18h10a1.5 1.5 0 0 0 1.5-1.5V6.5L11 2z"/>
+            <polyline points="11,2 11,6.5 15.5,6.5"/>
+            <line x1="7" y1="10" x2="13" y2="10"/>
+            <line x1="7" y1="13" x2="13" y2="13"/>
+            <line x1="7" y1="7" x2="9" y2="7"/>
+          </svg>
+        </div>
+        <div class="fc-title">Tạo hóa đơn chuyên nghiệp</div>
+        <div class="fc-desc">Số HĐ tự động, chọn khách hàng, VAT (0/5/8/10%), chiết khấu linh hoạt, đa tiền tệ với quy đổi VND tức thì.</div>
+        <div class="inv-widget">
+          <div class="inv-widget-head"><span class="inv-widget-num">HD-0039</span><span class="status-pill s-pending">Chờ TT</span></div>
+          <div class="inv-widget-row"><span class="lbl">Tạm tính</span><span class="val">100,000,000₫</span></div>
+          <div class="inv-widget-row"><span class="lbl">Chiết khấu 5%</span><span class="val" style="color:#DC2626">— 5,000,000₫</span></div>
+          <div class="inv-widget-row"><span class="lbl">VAT 10%</span><span class="val" style="color:#D97706">+ 9,500,000₫</span></div>
+          <div class="inv-widget-total"><span class="lbl">TỔNG CỘNG</span><span class="val">104,500,000₫</span></div>
+        </div>
+      </div>
+
+      <!-- VietQR -->
+      <div class="feat-card fc-s5 reveal-right">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <rect x="2" y="2" width="7" height="7" rx="1"/>
+            <rect x="11" y="2" width="7" height="7" rx="1"/>
+            <rect x="2" y="11" width="7" height="7" rx="1"/>
+            <rect x="4" y="4" width="3" height="3" fill="currentColor" stroke="none"/>
+            <rect x="13" y="4" width="3" height="3" fill="currentColor" stroke="none"/>
+            <rect x="4" y="13" width="3" height="3" fill="currentColor" stroke="none"/>
+            <rect x="11" y="11" width="2.5" height="2.5" fill="currentColor" stroke="none"/>
+            <rect x="15.5" y="11" width="2.5" height="2.5" fill="currentColor" stroke="none"/>
+            <rect x="11" y="15.5" width="7" height="2.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div class="fc-title">VietQR tự động</div>
+        <div class="fc-desc">Tạo mã QR với số tiền và nội dung từ hóa đơn. Hỗ trợ 12+ ngân hàng Việt Nam.</div>
+        <div class="qr-widget">
+          <div class="qr-box">
+            <svg width="56" height="56" viewBox="0 0 60 60" fill="none">
+              <rect x="2" y="2" width="24" height="24" rx="2" fill="#000"/><rect x="6" y="6" width="16" height="16" rx="1" fill="#fff"/><rect x="10" y="10" width="8" height="8" fill="#000"/>
+              <rect x="34" y="2" width="24" height="24" rx="2" fill="#000"/><rect x="38" y="6" width="16" height="16" rx="1" fill="#fff"/><rect x="42" y="10" width="8" height="8" fill="#000"/>
+              <rect x="2" y="34" width="24" height="24" rx="2" fill="#000"/><rect x="6" y="38" width="16" height="16" rx="1" fill="#fff"/><rect x="10" y="42" width="8" height="8" fill="#000"/>
+              <rect x="34" y="34" width="6" height="6" fill="#000"/><rect x="42" y="34" width="6" height="6" fill="#000"/><rect x="50" y="34" width="8" height="6" fill="#000"/>
+              <rect x="34" y="42" width="8" height="6" fill="#000"/><rect x="44" y="44" width="6" height="6" fill="#000"/><rect x="34" y="50" width="16" height="8" fill="#000"/>
+            </svg>
+          </div>
+          <div>
+            <div class="qr-info-bank">Vietcombank · 0123456789</div>
+            <div class="qr-info-amt">104,500,000₫</div>
+            <div class="qr-info-note">Thanh toan HD-0039</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-family:var(--font-mono);font-size:.68rem;color:var(--text-3);line-height:1.6;">VCB · TCB · BIDV · MB · ACB · VPBank<br/>Agribank · TPB · MSB · OCB · VIB · SHB</div>
+      </div>
+
+      <!-- Currency rates -->
+      <div class="feat-card fc-s4 reveal-up" data-delay="1">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <polyline points="3,8 6,5 9,8"/>
+            <line x1="6" y1="5" x2="6" y2="15"/>
+            <polyline points="11,12 14,15 17,12"/>
+            <line x1="14" y1="15" x2="14" y2="5"/>
+          </svg>
+        </div>
+        <div class="fc-title">Tỷ giá live</div>
+        <div class="fc-desc">Tự động cập nhật từ open.er-api.com. Lập hóa đơn đa tiền tệ chính xác.</div>
+        <div style="margin-top:14px">
+          <div class="cur-row"><span class="cur-code">USD</span><span class="cur-rate">25,480₫</span><span class="cur-change chg-up">+0.12%</span></div>
+          <div class="cur-row"><span class="cur-code">EUR</span><span class="cur-rate">27,140₫</span><span class="cur-change chg-up">+0.08%</span></div>
+          <div class="cur-row"><span class="cur-code">JPY</span><span class="cur-rate">171₫</span><span class="cur-change chg-down">-0.05%</span></div>
+          <div class="cur-row"><span class="cur-code">SGD</span><span class="cur-rate">18,960₫</span><span class="cur-change chg-up">+0.03%</span></div>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="feat-card fc-s4 reveal-up" data-delay="2">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" color="var(--primary)">
+            <rect x="2" y="11" width="3.5" height="7" rx="0.8" opacity=".6"/>
+            <rect x="7.5" y="6" width="3.5" height="12" rx="0.8"/>
+            <rect x="13" y="2" width="3.5" height="16" rx="0.8" opacity=".85"/>
+          </svg>
+        </div>
+        <div class="fc-title">Phân tích doanh thu</div>
+        <div class="fc-desc">Dashboard 4 chỉ số chính. Lọc theo trạng thái hóa đơn và xu hướng.</div>
+        <div class="chart-row">
+          <div class="bar" style="height:40%"></div><div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:35%"></div><div class="bar hi" style="height:80%"></div>
+          <div class="bar" style="height:60%"></div><div class="bar" style="height:70%"></div>
+          <div class="bar hi" style="height:95%"></div><div class="bar" style="height:65%"></div>
+          <div class="bar" style="height:50%"></div><div class="bar hi" style="height:100%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.58rem;color:var(--text-3);margin-top:4px;">
+          <span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>T8</span><span>T9</span><span>T10</span><span>T11</span><span>T12</span>
+        </div>
+      </div>
+
+      <!-- Clients -->
+      <div class="feat-card fc-s4 reveal-up" data-delay="3">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" color="var(--primary)">
+            <circle cx="7" cy="6" r="3"/>
+            <path d="M2 18a5 5 0 0 1 10 0"/>
+            <circle cx="15" cy="5.5" r="2.5" opacity=".65"/>
+            <path d="M13 18a3.5 3.5 0 0 1 6 0" opacity=".65"/>
+          </svg>
+        </div>
+        <div class="fc-title">Quản lý khách hàng</div>
+        <div class="fc-desc">Thông tin doanh nghiệp, hạn mức tín dụng, lịch sử giao dịch, 190+ quốc gia.</div>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(244,114,182,.05);border:1px solid var(--border);border-radius:8px;">
+            <div style="width:28px;height:28px;border-radius:7px;background:rgba(244,114,182,.2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--primary);font-size:.8rem;flex-shrink:0;">T</div>
+            <div><div style="font-size:.72rem;font-weight:600;">Techviet Corp</div><div style="font-family:var(--font-mono);font-size:.6rem;color:var(--text-3);">TNHH · 12 HĐ</div></div>
+            <span class="status-pill s-paid" style="margin-left:auto">Active</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(244,114,182,.05);border:1px solid var(--border);border-radius:8px;">
+            <div style="width:28px;height:28px;border-radius:7px;background:rgba(244,114,182,.2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--primary);font-size:.8rem;flex-shrink:0;">S</div>
+            <div><div style="font-size:.72rem;font-weight:600;">SaigonTech JSC</div><div style="font-family:var(--font-mono);font-size:.6rem;color:var(--text-3);">Cổ phần · 5 HĐ</div></div>
+            <span class="status-pill s-pending" style="margin-left:auto">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CoreData -->
+      <div class="feat-card fc-s6 reveal-left" data-delay="1">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" color="var(--primary)">
+            <ellipse cx="10" cy="5" rx="8" ry="3"/>
+            <path d="M2 5v5c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/>
+            <path d="M2 10v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5"/>
+          </svg>
+        </div>
+        <div class="fc-title">Lưu trữ an toàn CoreData</div>
+        <div class="fc-desc">Toàn bộ dữ liệu lưu cục bộ bằng Apple CoreData. Không cần internet, không đăng ký. Dữ liệu hoàn toàn thuộc về bạn.</div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+          <span class="pill"><span class="pill-dot"></span>Offline hoàn toàn</span>
+          <span class="pill"><span class="pill-dot"></span>Không tracking</span>
+          <span class="pill"><span class="pill-dot"></span>Không ads</span>
+        </div>
+      </div>
+
+      <!-- Status tracking -->
+      <div class="feat-card fc-s6 reveal-right" data-delay="1">
+        <div class="fc-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <path d="M10 2a6 6 0 0 0-6 6v3.5L2.5 14h15L16 11.5V8a6 6 0 0 0-6-6z"/>
+            <path d="M8 14a2 2 0 0 0 4 0"/>
+          </svg>
+        </div>
+        <div class="fc-title">Theo dõi trạng thái</div>
+        <div class="fc-desc">4 trạng thái: Nháp → Chờ thanh toán → Đã thanh toán / Hủy. Cảnh báo quá hạn. Đánh dấu một click.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center;">
+          <span class="status-pill s-draft" style="font-size:.75rem;padding:5px 12px;">Nháp</span>
+          <span style="color:var(--text-3)">→</span>
+          <span class="status-pill s-pending" style="font-size:.75rem;padding:5px 12px;">Chờ TT</span>
+          <span style="color:var(--text-3)">→</span>
+          <span class="status-pill s-paid" style="font-size:.75rem;padding:5px 12px;">Đã TT</span>
+          <span style="color:var(--text-3);font-size:.8rem;">hoặc</span>
+          <span class="status-pill s-overdue" style="font-size:.75rem;padding:5px 12px;">Hủy</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="persp-divider"></div>
+
+<!-- ═══════════════════════ STATS ═══════════════════════ -->
+<section class="sect" style="padding-block:80px">
+  <div class="wrap">
+    <div class="stats-grid">
+      <div class="stat-card reveal-up" data-delay="1"><div class="stat-num" data-count="12" data-suffix="+">0</div><div class="stat-lbl">Ngân hàng VietQR hỗ trợ</div></div>
+      <div class="stat-card reveal-up" data-delay="2"><div class="stat-num" data-count="30" data-suffix="+">0</div><div class="stat-lbl">Loại tiền tệ quy đổi</div></div>
+      <div class="stat-card reveal-up" data-delay="3"><div class="stat-num" data-count="100" data-suffix="%">0</div><div class="stat-lbl">Native macOS, không web view</div></div>
+      <div class="stat-card reveal-up" data-delay="4"><div class="stat-num" data-count="0" data-suffix="₫">0₫</div><div class="stat-lbl">Chi phí sử dụng mãi mãi</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="persp-divider"></div>
+
+<!-- ═══════════════════════ HOW IT WORKS ═══════════════════════ -->
+<section class="sect" id="how">
+  <div class="wrap">
+    <div style="text-align:center;margin-bottom:56px">
+      <div class="eyebrow reveal-up">02 — Cách hoạt động</div>
+      <h2 class="sect-title reveal-up" data-delay="1">Bắt đầu trong <span class="accent">vài phút</span></h2>
+      <p class="body-lg reveal-up" data-delay="2" style="margin:12px auto 0;max-width:500px">Không server, không đăng ký, không phức tạp.</p>
+    </div>
+    <div class="steps-row">
+      <div class="step-card reveal-left">
+        <div class="step-num">01</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <path d="M11 3v12M6 10l5 5 5-5"/>
+            <path d="M3 18h16"/>
+          </svg>
+        </div>
+        <div class="step-title">Tải & cài đặt</div>
+        <div class="step-desc">Download file .dmg, kéo vào Applications. Mở app — không cần internet cho lần đầu.</div>
+      </div>
+      <div class="step-card reveal-up" data-delay="2">
+        <div class="step-num">02</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" color="var(--primary)">
+            <circle cx="11" cy="11" r="3.5"/>
+            <path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.22 4.22l1.41 1.41M16.37 16.37l1.41 1.41M4.22 17.78l1.41-1.41M16.37 5.63l1.41-1.41"/>
+          </svg>
+        </div>
+        <div class="step-title">Cài ngân hàng</div>
+        <div class="step-desc">Vào Tùy chọn, nhập tài khoản ngân hàng một lần. VietQR tự động trên mọi hóa đơn.</div>
+      </div>
+      <div class="step-card reveal-right">
+        <div class="step-num">03</div>
+        <div class="step-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--primary)">
+            <path d="M13 2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.5L13 2z"/>
+            <polyline points="13,2 13,6.5 17,6.5"/>
+            <line x1="9" y1="11" x2="15" y2="11"/>
+            <line x1="9" y1="14" x2="13" y2="14"/>
+          </svg>
+        </div>
+        <div class="step-title">Tạo & gửi hóa đơn</div>
+        <div class="step-desc">Thêm khách hàng, tạo hóa đơn với VAT và chiết khấu. QR sẵn để khách chuyển khoản ngay.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="persp-divider"></div>
+
+<!-- ═══════════════════════ TECH STACK ═══════════════════════ -->
+<section class="sect" style="padding-block:80px">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+      <div class="reveal-left">
+        <div class="eyebrow">03 — Yêu cầu hệ thống</div>
+        <h2 class="sect-title" style="margin-bottom:20px">Chạy mượt trên<br/><span class="accent">mọi Mac hiện đại</span></h2>
+        <div class="pill-wrap">
+          <div class="pill"><span class="pill-dot"></span>macOS 13 Ventura+</div>
+          <div class="pill"><span class="pill-dot"></span>Apple Silicon & Intel</div>
+          <div class="pill"><span class="pill-dot"></span>~50 MB dung lượng</div>
+          <div class="pill"><span class="pill-dot"></span>Không cần internet</div>
+        </div>
+      </div>
+      <div class="reveal-right">
+        <div class="eyebrow">04 — Công nghệ</div>
+        <h2 class="sect-title" style="margin-bottom:20px">Xây dựng bằng<br/><span class="accent">công nghệ Apple</span></h2>
+        <div class="pill-wrap">
+          <div class="pill"><span class="pill-dot"></span>Swift 5.9</div>
+          <div class="pill"><span class="pill-dot"></span>SwiftUI</div>
+          <div class="pill"><span class="pill-dot"></span>CoreData</div>
+          <div class="pill"><span class="pill-dot"></span>open.er-api.com</div>
+          <div class="pill"><span class="pill-dot"></span>VietQR API</div>
+          <div class="pill"><span class="pill-dot"></span>restcountries.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="persp-divider"></div>
+
+<!-- ═══════════════════════ DOWNLOAD ═══════════════════════ -->
+<section class="dl-section" id="download">
+  <div class="wrap">
+    <div class="dl-card reveal-up">
+      <div class="dl-app-identity">
+        <img src="icon.png" alt="Muoi" class="dl-app-icon"/>
+        <span class="dl-app-name">Muoi</span>
+      </div>
+      <div class="dmg-badge">Muoi.dmg · 1.1 MB · macOS 13+</div>
+      <div class="dl-title">Sẵn sàng để<br/><span class="accent">bắt đầu?</span></div>
+      <p class="dl-sub">Tải Muoi miễn phí — không đăng ký, không quảng cáo, không giới hạn.<br/>Dữ liệu hoàn toàn thuộc về bạn.</p>
+      <div class="dl-actions">
+        <a href="Muoi.dmg" download class="btn-primary ripple-host" style="font-size:1rem;padding:14px 32px;">
+          Tải về cho Mac
+        </a>
+        <a href="#how" class="btn-outline">
+          Xem hướng dẫn
+        </a>
+      </div>
+      <div class="dl-note">macOS 13+ · Apple Silicon & Intel · Miễn phí mãi mãi · Mã nguồn mở</div>
+    </div>
+  </div>
+</section>
+
+<div class="persp-divider"></div>
+
+<!-- ═══════════════════════ CONTACT ═══════════════════════ -->
+<section class="contact-section" id="contact">
+  <div class="wrap">
+    <div class="contact-inner">
+      <div class="reveal-left">
+        <div class="eyebrow">05 — Liên hệ</div>
+        <h2 class="contact-title">Liên hệ với<br/><span class="accent">Muoi</span></h2>
+        <p class="contact-sub">Có câu hỏi, góp ý hoặc muốn đóng góp cho dự án? Hãy liên hệ trực tiếp.</p>
+        <div class="contact-info">
+          <div class="contact-row">
+            <div class="contact-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--primary)" stroke-width="1.4" stroke-linecap="round">
+                <circle cx="8" cy="5.5" r="3"/>
+                <path d="M2 15a6 6 0 0 1 12 0"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact-label">Tác giả</div>
+              <div class="contact-val">Muoi</div>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--primary)">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact-label">GitHub</div>
+              <div class="contact-val" style="color:var(--primary)">github.com/muoi</div>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--primary)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="8" r="2"/>
+                <path d="M8 3v2M8 11v2M3 8h2M11 8h2"/>
+                <path d="M4.93 4.93l1.41 1.41M9.66 9.66l1.41 1.41M4.93 11.07l1.41-1.41M9.66 6.34l1.41-1.41"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact-label">Báo lỗi</div>
+              <div class="contact-val" style="color:var(--primary)">Issues · GitHub</div>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--primary)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="12" height="9" rx="1.5"/>
+                <path d="M5 6V4a3 3 0 0 1 6 0v2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact-label">License</div>
+              <div class="contact-val">MIT · Mã nguồn mở</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form reveal-right">
+        <div class="form-group">
+          <label class="form-label">Tên của bạn</label>
+          <input type="text" class="form-input" placeholder="Nguyễn Văn A"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" placeholder="email@example.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nội dung</label>
+          <textarea class="form-input form-textarea" placeholder="Góp ý, báo lỗi, hoặc câu hỏi..."></textarea>
+        </div>
+        <button class="btn-primary form-btn" onclick="this.textContent='✓ Đã gửi!';setTimeout(()=>this.textContent='Gửi tin nhắn',2000)">Gửi tin nhắn</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="footer-logo-m">
+          <img src="icon.png" alt="Muoi"/>
+        </div>
+        Muoi
+      </div>
+      <div class="footer-links">
+        <a href="#features">Tính năng</a>
+        <a href="#how">Hướng dẫn</a>
+        <a href="#download">Tải xuống</a>
+        <a href="#contact">Liên hệ</a>
+      </div>
+      <div class="footer-copy">© 2026 Muoi · MIT License · Miễn phí mãi mãi</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Scroll progress bar ──
+const progressBar = document.getElementById('scroll-progress');
+const scrollTopBtn = document.getElementById('scroll-top');
+addEventListener('scroll', () => {
+  const pct = scrollY / (document.body.scrollHeight - innerHeight) * 100;
+  progressBar.style.width = pct + '%';
+  scrollTopBtn.classList.toggle('visible', scrollY > 400);
+}, {passive:true});
+
+// ── Nav scroll ──
+const nav = document.getElementById('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 30), {passive:true});
+
+// ── Mobile hamburger ──
+function toggleMobileMenu() {
+  const btn  = document.getElementById('hamburger');
+  const menu = document.getElementById('mobileMenu');
+  btn.classList.toggle('open');
+  menu.classList.toggle('open');
+}
+function closeMobileMenu() {
+  document.getElementById('hamburger').classList.remove('open');
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const menu = document.getElementById('mobileMenu');
+  const btn  = document.getElementById('hamburger');
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) closeMobileMenu();
+});
+
+// ── Tab switcher (with fade) ──
+const sbIds = {'pane-dash':'sb-dash','pane-inv':'sb-inv','pane-cli':'sb-cli'};
+function switchTab(btn, paneId) {
+  document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const active = document.querySelector('.app-pane.visible');
+  if (active) {
+    active.classList.remove('visible');
+  }
+  const next = document.getElementById(paneId);
+  requestAnimationFrame(() => { next.classList.add('visible'); });
+  document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
+  if (sbIds[paneId]) document.getElementById(sbIds[paneId]).classList.add('active');
+}
+
+// ── App theme toggle ──
+const moonIcon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+const sunIcon  = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+let appIsLight = false;
+function toggleAppTheme() {
+  appIsLight = !appIsLight;
+  const frame  = document.querySelector('.app-frame');
+  const toggle = document.getElementById('themeToggle');
+  const icon   = document.getElementById('themeIcon');
+  frame.classList.toggle('light', appIsLight);
+  toggle.classList.toggle('light-active', appIsLight);
+  icon.innerHTML = appIsLight ? moonIcon : sunIcon;
+  toggle.lastChild.textContent = appIsLight ? ' Tối' : ' Sáng';
+}
+
+// ── Auto-rotate tabs every 4s ──
+let tabIdx = 1;
+const tabBtns = document.querySelectorAll('.app-tab');
+const panes   = ['pane-dash','pane-inv','pane-cli'];
+let autoTimer = setInterval(() => {
+  tabIdx = (tabIdx + 1) % 3;
+  switchTab(tabBtns[tabIdx], panes[tabIdx]);
+}, 4000);
+document.querySelector('.app-preview-wrap').addEventListener('mouseenter', () => clearInterval(autoTimer));
+document.querySelector('.app-preview-wrap').addEventListener('mouseleave', () => {
+  autoTimer = setInterval(() => {
+    tabIdx = (tabIdx + 1) % 3;
+    switchTab(tabBtns[tabIdx], panes[tabIdx]);
+  }, 4000);
+});
+
+// ── Directional scroll reveal ──
+const revealSelectors = '.reveal, .reveal-left, .reveal-right, .reveal-up, .reveal-down';
+const revealEls = document.querySelectorAll(revealSelectors);
+const ro = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      ro.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+revealEls.forEach(el => ro.observe(el));
+
+// ── Animated number counters ──
+function easeOut(t){ return 1 - Math.pow(1-t, 3); }
+function animateCount(el) {
+  const target  = parseInt(el.dataset.count, 10);
+  const suffix  = el.dataset.suffix || '';
+  if (target === 0) { el.textContent = '0' + suffix; return; }
+  const duration = 1400;
+  const start    = performance.now();
+  function frame(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    el.textContent = Math.round(easeOut(progress) * target) + suffix;
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+const countEls = document.querySelectorAll('.stat-num[data-count]');
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCount(e.target);
+      counterObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+countEls.forEach(el => counterObs.observe(el));
+
+// ── Ripple effect ──
+document.querySelectorAll('.ripple-host').forEach(el => {
+  el.addEventListener('click', function(e) {
+    const rect   = this.getBoundingClientRect();
+    const size   = Math.max(rect.width, rect.height) * 1.5;
+    const wave   = document.createElement('span');
+    wave.className = 'ripple-wave';
+    wave.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
+    this.appendChild(wave);
+    wave.addEventListener('animationend', () => wave.remove());
+  });
+});
+
+// ── 3D Tilt on feature cards ──
+document.querySelectorAll('.feat-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect   = card.getBoundingClientRect();
+    const cx     = rect.left + rect.width  / 2;
+    const cy     = rect.top  + rect.height / 2;
+    const dx     = (e.clientX - cx) / (rect.width  / 2);
+    const dy     = (e.clientY - cy) / (rect.height / 2);
+    card.style.transform = `perspective(800px) rotateY(${dx*6}deg) rotateX(${-dy*6}deg) translateY(-6px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+    card.style.transition = 'transform .4s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s';
+  });
+  card.addEventListener('mouseenter', () => {
+    card.style.transition = 'border-color .3s, box-shadow .3s';
+  });
+});
+
+// ── Mouse parallax on aurora ──
+const auroraGrid  = document.querySelector('.persp-grid');
+const auroraLines = document.querySelector('.vp-lines');
+const auroraGlow  = document.querySelector('.persp-glow');
+document.addEventListener('mousemove', e => {
+  const x = (e.clientX / innerWidth  - 0.5) * 2;
+  const y = (e.clientY / innerHeight - 0.5) * 2;
+  if (auroraGrid)  auroraGrid.style.transform  = `translate(${x*24}px, ${y*16}px)`;
+  if (auroraLines) auroraLines.style.transform = `translate(${-x*18}px, ${-y*14}px)`;
+  if (auroraGlow)  auroraGlow.style.transform  = `translate(${x*12}px, ${y*10}px)`;
+}, {passive:true});
+
+// ── Typing effect on hero badge ──
+(function() {
+  const badge = document.querySelector('.hero-badge');
+  if (!badge) return;
+  const dot  = badge.querySelector('.badge-dot');
+  const text = 'Phiên bản mới nhất · macOS 13+ · Native SwiftUI';
+  const span = document.createElement('span');
+  badge.textContent = '';
+  badge.appendChild(dot);
+  badge.appendChild(span);
+  let i = 0;
+  function type() {
+    if (i <= text.length) {
+      span.textContent = text.slice(0, i++);
+      setTimeout(type, 38);
+    }
+  }
+  setTimeout(type, 600);
+})();
+</script>
+<script>
+// ══════════════════════════════════════════════
+//  AR / VR MOTION ENGINE
+// ══════════════════════════════════════════════
+(function initARVR() {
+
+  // ── 3D Particle Field ──
+  const canvas = document.getElementById('vr-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, cx, cy;
+  function resize() {
+    W = canvas.width  = innerWidth;
+    H = canvas.height = innerHeight;
+    cx = W / 2; cy = H / 2;
+  }
+  resize();
+  addEventListener('resize', resize, {passive:true});
+
+  // Camera state
+  let tx = 0, ty = 0, camX = 0, camY = 0;
+
+  // Mouse input
+  document.addEventListener('mousemove', e => {
+    tx = (e.clientX / W - .5) * 2;
+    ty = (e.clientY / H - .5) * 2;
+  }, {passive:true});
+
+  // Gyroscope (mobile AR)
+  function enableGyro() {
+    window.addEventListener('deviceorientation', e => {
+      if (e.gamma != null) {
+        tx = Math.max(-1, Math.min(1, e.gamma / 25));
+        ty = Math.max(-1, Math.min(1, (e.beta - 45) / 25));
+      }
+    }, {passive:true});
+  }
+  if (typeof DeviceOrientationEvent !== 'undefined') {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      document.body.addEventListener('click', function once() {
+        DeviceOrientationEvent.requestPermission()
+          .then(s => { if (s === 'granted') enableGyro(); })
+          .catch(() => {});
+        document.body.removeEventListener('click', once);
+      }, {once:true});
+    } else {
+      enableGyro();
+    }
+  }
+
+  // Particle system
+  const FOV = 500, N = 130;
+  function mkParticle(randomZ) {
+    return {
+      x: (Math.random() - .5) * 3000,
+      y: (Math.random() - .5) * 3000,
+      z: randomZ ? Math.random() * FOV : FOV,
+      speed: Math.random() * .35 + .12,      // slower = more visible
+      hue:   Math.random() < .6
+               ? Math.random() * 50 + 280    // pink/purple
+               : Math.random() * 40 + 170,   // cyan/teal
+      alpha: Math.random() * .45 + .55,      // min 0.55, max 1.0
+      size:  Math.random() * 2.4 + .9,       // bigger dots
+    };
+  }
+  const pts = Array.from({length: N}, () => mkParticle(true));
+
+  function project(p) {
+    const s  = FOV / (FOV + p.z);
+    return {
+      sx: p.x * s + cx + camX * 80,
+      sy: p.y * s + cy + camY * 50,
+      sz: Math.max(.4, p.size * s),
+      al: p.alpha * Math.min(1, s * 2.2),
+      sc: s, hue: p.hue
+    };
+  }
+
+  function frame() {
+    requestAnimationFrame(frame);
+    camX += (tx - camX) * .042;
+    camY += (ty - camY) * .042;
+    ctx.clearRect(0, 0, W, H);
+
+    const proj = pts.map(project);
+
+    // Connection lines
+    for (let i = 0; i < proj.length; i++) {
+      const a = proj[i];
+      if (a.sx < -60 || a.sx > W + 60) continue;
+      for (let j = i + 1; j < proj.length; j++) {
+        const b = proj[j];
+        const dx = a.sx - b.sx, dy = a.sy - b.sy;
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        if (d < 130) {
+          const al = (1 - d/130) * .18 * a.sc * b.sc * 9;
+          ctx.beginPath();
+          ctx.moveTo(a.sx, a.sy);
+          ctx.lineTo(b.sx, b.sy);
+          ctx.strokeStyle = `hsla(${(a.hue+b.hue)/2},85%,78%,${al})`;
+          ctx.lineWidth = .8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Particles
+    proj.forEach((p, i) => {
+      if (p.sx < -12 || p.sx > W+12 || p.sy < -12 || p.sy > H+12) return;
+
+      // Outer glow (wide, soft)
+      const g2 = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, p.sz * 14);
+      g2.addColorStop(0, `hsla(${p.hue},95%,80%,${p.al*.25})`);
+      g2.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, p.sz * 14, 0, Math.PI*2);
+      ctx.fillStyle = g2;
+      ctx.fill();
+
+      // Inner glow (tight)
+      const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, p.sz * 5);
+      g.addColorStop(0, `hsla(${p.hue},100%,90%,${p.al*.75})`);
+      g.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, p.sz * 5, 0, Math.PI*2);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // Core dot (bright white center)
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, p.sz * .8, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue},80%,96%,${p.al})`;
+      ctx.fill();
+
+      // Advance Z
+      pts[i].z -= pts[i].speed;
+      if (pts[i].z <= 0) pts[i] = mkParticle(false);
+    });
+  }
+  requestAnimationFrame(frame);
+
+  // ── Holographic shimmer — all card types ──
+  const holoSelector = '.feat-card,.stat-card,.step-card,.dl-card,.contact-form';
+  document.querySelectorAll(holoSelector).forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.setProperty('--mx', '50%');
+      card.style.setProperty('--my', '50%');
+    });
+  });
+
+  // ── Hero AR depth layers ──
+  const els = {
+    badge:   document.querySelector('.hero-badge'),
+    title:   document.querySelector('.hero-title'),
+    sub:     document.querySelector('.hero-sub'),
+    actions: document.querySelector('.hero-actions'),
+    scroll:  document.querySelector('.hero-scroll'),
+    preview: document.querySelector('.app-preview-wrap'),
+  };
+  const heroSect = document.querySelector('.hero');
+
+  document.addEventListener('mousemove', e => {
+    if (!heroSect) return;
+    const bottom = heroSect.getBoundingClientRect().bottom;
+    if (e.clientY > bottom + 150) return;
+    const mx = (e.clientX / W - .5) * 2;
+    const my = (e.clientY / H - .5) * 2;
+
+    if (els.badge)   els.badge.style.transform   = `translate(${mx*-10}px,${my*-5}px)`;
+    if (els.title)   els.title.style.transform   = `translate(${mx*-18}px,${my*-9}px)`;
+    if (els.sub)     els.sub.style.transform     = `translate(${mx*-10}px,${my*-5}px)`;
+    if (els.actions) els.actions.style.transform = `translate(${mx*-6}px,${my*-3}px)`;
+    if (els.scroll)  els.scroll.style.transform  = `translate(${mx*-4}px,${my*-2}px)`;
+    if (els.preview) els.preview.style.transform =
+      `perspective(2000px) rotateX(${3 - my*3}deg) rotateY(${mx*1.5}deg) translate(${mx*-4}px,0)`;
+  }, {passive:true});
+
+  // Reset transforms on scroll away from hero
+  addEventListener('scroll', () => {
+    if (!heroSect) return;
+    if (scrollY > heroSect.offsetHeight) {
+      Object.values(els).forEach(el => { if (el) el.style.transform = ''; });
+    }
+  }, {passive:true});
+
+})();
+</script>
+</body>
+</html>
