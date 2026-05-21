@@ -22,10 +22,6 @@ struct MainWindow: View {
             Color.appBg.opacity(0.72)
                 .ignoresSafeArea()
 
-            // AR/VR 3D particle field
-            ParticleLayer()
-                .opacity(0.72)
-
             Group {
                 HStack(spacing: 0) {
                     MainSidebar(selectedTab: $selectedTab)
