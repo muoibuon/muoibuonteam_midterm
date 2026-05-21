@@ -254,9 +254,6 @@ Người Dùng    NewInvoiceSheet    CoreDataManager    Database (SQLite)
     │                │                   │  context.save()  │
     │                │                   │─────────────────►│
     │                │                   │  Thành công      │
-    │                │                   │◄─────────────────│
-    │  Hóa đơn xuất hiện trong danh sách │                  │
-    │◄───────────────│                   │                  │
     │                │                   │                  │
 ```
 
