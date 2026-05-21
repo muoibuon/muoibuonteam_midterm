@@ -2,9 +2,10 @@ import Foundation
 import SwiftUI
 
 // MARK: - API Response Models
-private struct ExchangeRatesResponse: Codable {
-    let result: String
-    let rates: [String: Double]
+// fawazahmed0/currency-api: { "date": "...", "usd": { "vnd": 25850, ... } }
+private struct FawazRatesResponse: Codable {
+    let date: String
+    let usd: [String: Double]
 }
 
 private struct CountryItem: Codable {
@@ -14,9 +15,9 @@ private struct CountryItem: Codable {
 
 // MARK: - APIService
 // Integrates 3 free APIs (no key required):
-//   1. open.er-api.com     — live exchange rates (USD base)
-//   2. img.vietqr.io       — VietQR bank transfer QR images
-//   3. restcountries.com   — country list
+//   1. fawazahmed0/currency-api — live exchange rates (USD base, CDN-backed)
+//   2. img.vietqr.io            — VietQR bank transfer QR images
+//   3. restcountries.com        — country list
 @MainActor
 class APIService: ObservableObject {
     static let shared = APIService()
@@ -34,31 +35,40 @@ class APIService: ObservableObject {
     private init() {}
 
     // ── Exchange Rates ──────────────────────────────────
-    // Source: https://open.er-api.com/v6/latest/USD
-    // Free tier, no API key, ~1500 req/month
+    // Source: github.com/fawazahmed0/exchange-api — free, no key, unlimited, CDN-backed
+    // Primary:  cdn.jsdelivr.net  |  Fallback: currency-api.pages.dev
+    private static let rateURLs = [
+        "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
+        "https://latest.currency-api.pages.dev/v1/currencies/usd.json",
+    ]
+
     func fetchExchangeRates() async {
         guard !isLoadingRates else { return }
         isLoadingRates = true
         ratesError = nil
         defer { isLoadingRates = false }
 
-        guard let url = URL(string: "https://open.er-api.com/v6/latest/USD") else { return }
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let response  = try JSONDecoder().decode(ExchangeRatesResponse.self, from: data)
-            if response.result == "success" {
-                rates = response.rates
+        for urlString in APIService.rateURLs {
+            guard let url = URL(string: urlString) else { continue }
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                guard (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+                let decoded = try JSONDecoder().decode(FawazRatesResponse.self, from: data)
+                // API returns lowercase keys (e.g. "vnd"), normalise to uppercase
+                rates = Dictionary(uniqueKeysWithValues: decoded.usd.map { ($0.key.uppercased(), $0.value) })
                 lastRatesUpdate = Date()
+                return
+            } catch {
+                continue
             }
-        } catch {
-            ratesError = "Không thể tải tỷ giá"
         }
+        ratesError = "Không thể tải tỷ giá"
     }
 
     // Convert any amount to VND using USD as bridge
     func toVND(amount: Double, from currency: String) -> Double {
         guard currency != "VND",
-              let usdToVND = rates["VND"],
+              let usdToVND = rates["VND"], usdToVND > 0,
               let usdToSrc = rates[currency],
               usdToSrc > 0 else { return amount }
         return (amount / usdToSrc) * usdToVND

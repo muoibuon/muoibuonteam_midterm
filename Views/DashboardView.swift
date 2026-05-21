@@ -171,12 +171,18 @@ struct DashboardView: View {
                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
                 .foregroundColor(.appText1)
                 .frame(width: 40, alignment: .leading)
-            Text(AppConstants.Currencies.symbols[currency] ?? currency)
+            Text("1 \(AppConstants.Currencies.symbols[currency] ?? currency) =")
                 .font(.system(size: 11))
                 .foregroundColor(.appText3)
             Spacer()
-            let fmt = NumberFormatter()
-            let _ = { fmt.numberStyle = .decimal; fmt.maximumFractionDigits = 0 }()
+            let fmt: NumberFormatter = {
+                let f = NumberFormatter()
+                f.numberStyle = .decimal
+                // Small-value currencies (KRW, JPY <1₫ edge) keep 2 decimal places
+                f.maximumFractionDigits = rate < 100 ? 2 : 0
+                f.minimumFractionDigits = rate < 100 ? 2 : 0
+                return f
+            }()
             Text("\(fmt.string(from: NSNumber(value: rate)) ?? "")₫")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.appIndigo)
