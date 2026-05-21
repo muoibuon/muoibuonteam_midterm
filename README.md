@@ -6,7 +6,7 @@
 
 # Check this OUT ! Tải ngay .dmg trên web mà không cần clone repo !
 <p align="center">
-https://25112231and25112235oopmidterm.vercel.app
+https://muoibuonmidterm.vercel.app
 
 </p>
 
